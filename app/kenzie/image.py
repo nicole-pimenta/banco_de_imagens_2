@@ -6,7 +6,7 @@ from app.kenzie import ALLOWED_EXTENSIONS
 
 dotenv.load_dotenv() 
 
-from app.kenzie.exceptions import NotAllowedExtensionError , FileBiggerThan1MBError
+from app.kenzie.exceptions import NotAllowedExtensionError , FileBiggerThan1MBError,FileAlreadyExistError
 
 from flask.helpers import safe_join
 from werkzeug.datastructures import FileStorage
@@ -82,20 +82,24 @@ def check_if_empty_repo_exist():
 
 def save_image(file: FileStorage , length): 
     allowed_extensions = ALLOWED_EXTENSIONS.split('.') 
-    file_extension = file.filename.split(".")[-1]
+    file_extension = file.filename.split(".")[-1] 
+    filename = str(file.filename) 
+    lista = []
 
-
+    for files in list_all_files(): 
+        lista.append(files) 
+    
     if length < 100000:
-        filename = str(datetime.now(timezone.utc))[:26] 
-        filename = secure_filename(filename) 
-        filename = f'{filename}.{file_extension}'
         path = safe_join(FILES_DIRECTORY, f'{file_extension}/{filename}') 
         file.save(path)
     if length > 100000:
         raise FileBiggerThan1MBError('Arquivo maior que 1MB')
     if file_extension  not in allowed_extensions:
         raise NotAllowedExtensionError("Extensão não permitida, tente outra!")
+    if filename in lista[0]:
+            raise FileAlreadyExistError('Arquivo com nome já existente')
     
+
     return filename
 
 

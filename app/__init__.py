@@ -4,7 +4,7 @@ from flask import Flask, jsonify,send_from_directory,request
 app = Flask(__name__)
 
 
-from .kenzie.exceptions  import NotAllowedExtensionError, FileBiggerThan1MBError
+from .kenzie.exceptions  import NotAllowedExtensionError, FileBiggerThan1MBError, FileAlreadyExistError
 
 from .kenzie import image
 
@@ -54,6 +54,7 @@ def download_dir_as_zip():
 def upload_image(): 
     files_list = [] 
 
+    
     try:
         for file in request.files:
             filename= image.save_image(request.files[file] , request.content_length) 
@@ -62,6 +63,8 @@ def upload_image():
     except FileBiggerThan1MBError as err:
         return {"message": f'{err}' } , 413 
     except NotAllowedExtensionError as err:
-        return {"message": f'{err}' } , 415
+        return {"message": f'{err}' } , 415 
+    except FileAlreadyExistError as err:
+        return {"message": f'{err}' } , 409
     
    
