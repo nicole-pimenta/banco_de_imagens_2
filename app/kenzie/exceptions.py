@@ -11,3 +11,6 @@ class FileBiggerThan1MBError(Exception):
 
 class FileAlreadyExistError(Exception):
     ... 
+
+class BadRequestError(Exception):
+    ... 

@@ -1,5 +1,5 @@
 
-from flask import Flask, jsonify,send_from_directory,request
+from flask import Flask, jsonify,send_from_directory,request,BadRequestError
 
 app = Flask(__name__)
 
@@ -34,7 +34,7 @@ def download_image(file_name):
 
     try:
         return send_from_directory(directory=f"../images/{extension}", path=file_name, as_attachment=True) , 201 
-    except :
+    except BadRequestError:
         return {"message": 'arquivo não existe, tente outro ' } , 404
    
 
@@ -45,21 +45,19 @@ def download_dir_as_zip():
 
     try:
         return send_from_directory(directory="/tmp", path=f"{extension}.zip", as_attachment=True), 201 
-    except :
+    except BadRequestError :
         return {"message": 'extensão não existe, tente uma válida ' } , 404
 
 #------------------------------------------------ UPLOAD 
 
 @app.post('/upload')
 def upload_image(): 
-    files_list = [] 
-
-    
+   
     try:
         for file in request.files:
             filename= image.save_image(request.files[file] , request.content_length) 
-            files_list.append(filename) 
-            return jsonify(files_list) , 201
+
+            return {"message": f"Uploade de {filename} com sucesso"} , 201
     except FileBiggerThan1MBError as err:
         return {"message": f'{err}' } , 413 
     except NotAllowedExtensionError as err:
