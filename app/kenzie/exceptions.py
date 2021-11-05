@@ -1,0 +1,9 @@
+class NotAllowedExtensionError(Exception):
+    ... 
+
+class FileDoesNotExist(Exception):
+    ... 
+
+
+class FileBiggerThan1MBError(Exception):
+    ...

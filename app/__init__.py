@@ -1,6 +1,10 @@
+
 from flask import Flask, jsonify,send_from_directory,request
 
 app = Flask(__name__)
+
+
+from .kenzie.exceptions  import NotAllowedExtensionError, FileBiggerThan1MBError
 
 from .kenzie import image
 
@@ -11,71 +15,53 @@ app.config['MAX_CONTENT_LENGTH'] =  number * 1024 * 1024
 
 @app.get('/files')
 def list_files():
-    dir_list = image.list_all_files() 
-    files_list = []
-
-    for files in dir_list:
-        path = image.get_path(files)
-        files_list.append(image.list_files(path))
-
-    return dict(zip(dir_list,files_list)), 200
-
+    files_list = image.list_all_files()   
+    return jsonify({'data': files_list}) , 200
+    
 
 @app.get('/files/<string:extension>')
 def list_image_by_extension(extension:str):
-    dir_list = image.list_all_files()
-    extension = image.get_extension(extension)
-    output = []
-
-    for files in dir_list: 
-        if files == extension:
-            path = image.get_path(files)
-            lista = image.list_files(path)
-            for images in lista:
-                output.append(images)
-        
     try:
-        return jsonify(output), 200
-    except:
-        return {"message":f' A extensão {extension} nao existe'}, 404
+        return jsonify(image.list_by_extension(extension)), 200
+    except NotAllowedExtensionError as err:
+        return {"message": f'{err}' } , 404
 
 
 #------------------------------------------------ DOWNLOAD --------------------------------------
-
 @app.get('/download/<string:file_name>')
-def download_image(file_name):
+def download_image(file_name): 
     extension = image.get_extension(file_name)
-    path = image.get_path(extension) 
 
     try:
-        return send_from_directory(directory=f"{path}", path=file_name, as_attachment=True), 200 
-    except:
-        return {"message":f' O arquivo {file_name} nao existe'}, 404
-
+        return send_from_directory(directory=f"../images/{extension}", path=file_name, as_attachment=True) , 201 
+    except :
+        return {"message": 'arquivo não existe, tente outro ' } , 404
+   
 
 @app.get('/download-zip')
 def download_dir_as_zip():
     extension = request.args.get('file_extension') 
-    path = image.get_path(extension) 
+    image.download_zip_files(extension) 
 
-    image.download_zip_files(extension) , 200 
-
-    send_from_directory(directory="/tmp", path=f"{extension}.zip", as_attachment=True), 200 
-
-    return {"message":'download diretório .zip feito com sucesso !'}, 201
-
+    try:
+        return send_from_directory(directory="/tmp", path=f"{extension}.zip", as_attachment=True), 201 
+    except :
+        return {"message": 'extensão não existe, tente uma válida ' } , 404
 
 #------------------------------------------------ UPLOAD 
 
 @app.post('/upload')
 def upload_image(): 
-    files_list = []
+    files_list = [] 
+
+    try:
+        for file in request.files:
+            filename= image.save_image(request.files[file] , request.content_length) 
+            files_list.append(filename) 
+            return jsonify(files_list) , 201
+    except FileBiggerThan1MBError as err:
+        return {"message": f'{err}' } , 413 
+    except NotAllowedExtensionError as err:
+        return {"message": f'{err}' } , 415
     
-    for file in request.files:
-        filename= image.save_image(request.files[file]) 
-        files_list.append(filename)
-    
-    if request.content_length < 100000:
-        return jsonify(files_list) , 201
-    else:
-        return {"msg": "tamanho nao suportado"}
+   
